@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: #E2DDD5;
+    --text: #1A1714;
+    --muted: #7A7168;
+    --accent: #C1440E;
+    --accent-light: #FAE8E1;
+    --green: #2D6A3F;
+    --green-light: #E3F0E8;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --gray: #5F5E5A;
+    --gray-light: #F1EFE8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; }
+
+  /* HEADER */
+  .header { margin-bottom: 2rem; }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .header p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .header-row { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-actions { display: flex; gap: 8px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text);
+    transition: all 0.15s ease;
+  }
+  .btn:hover { background: var(--surface2); border-color: #C8C2B8; }
+  .btn-primary {
+    background: var(--text); color: var(--bg);
+    border-color: var(--text);
+  }
+  .btn-primary:hover { background: #333; }
+  .btn-danger { border-color: var(--red-light); }
+  .btn-danger:hover { background: var(--red-light); color: var(--red); }
+
+  /* SUMMARY CARDS */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1.4rem;
+  }
+  .card-label { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .card-value { font-family: 'DM Serif Display', serif; font-size: 28px; font-weight: 400; }
+  .card-value.income { color: var(--green); }
+  .card-value.expense { color: var(--red); }
+  .card-value.balance-pos { color: var(--green); }
+  .card-value.balance-neg { color: var(--red); }
+  .card-value.balance-zero { color: var(--muted); }
+
+  /* BUDGET ALERT */
+  .budget-alert {
+    display: none; background: var(--amber-light);
+    border: 1.5px solid #EF9F27; border-radius: var(--radius-sm);
+    padding: 10px 14px; font-size: 13px; color: var(--amber);
+    margin-bottom: 1rem; align-items: center; gap: 8px;
+  }
+  .budget-alert.visible { display: flex; }
+  .budget-alert svg { flex-shrink: 0; }
+
+  /* BUDGET PROGRESS */
+  .budget-section {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1.4rem; margin-bottom: 1.5rem;
+  }
+  .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .budget-header-left { font-size: 14px; font-weight: 500; }
+  .budget-input-row { display: flex; align-items: center; gap: 8px; }
+  .budget-input-row input { width: 130px; }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+  .progress-bar { height: 100%; border-radius: 100px; background: var(--green); transition: width 0.4s ease, background 0.3s ease; }
+  .progress-bar.warn { background: #EF9F27; }
+  .progress-bar.over { background: var(--red); }
+  .progress-label { font-size: 12px; color: var(--muted); }
+
+  /* FORM */
+  .form-section {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1.4rem; margin-bottom: 1.5rem;
+  }
+  .form-section h2 { font-size: 14px; font-weight: 600; margin-bottom: 1rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; letter-spacing: 0.03em; }
+  input[type="text"], input[type="number"], input[type="date"], select {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; background: var(--bg); color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--text); }
+
+  /* TYPE TOGGLE */
+  .type-toggle { display: flex; gap: 0; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .type-toggle button {
+    flex: 1; padding: 9px 0; border: none; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--muted); transition: all 0.15s;
+  }
+  .type-toggle button.active.expense { background: var(--red-light); color: var(--red); }
+  .type-toggle button.active.income { background: var(--green-light); color: var(--green); }
+
+  /* CHART + LIST LAYOUT */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+  .panel {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1.4rem;
+  }
+  .panel h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 1rem; }
+  .chart-wrap { position: relative; height: 180px; }
+  .legend { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+  .legend-left { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-amount { font-weight: 600; font-size: 12px; color: var(--text); }
+
+  /* TRANSACTIONS */
+  .transactions-section {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .tx-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.4rem; border-bottom: 1.5px solid var(--border); flex-wrap: wrap; gap: 8px;
+  }
+  .tx-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .tx-filters { display: flex; gap: 8px; }
+  .tx-filters select { font-size: 12px; padding: 5px 10px; }
+  .tx-list { max-height: 380px; overflow-y: auto; }
+  .tx-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 1.4rem; border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-item:hover { background: var(--surface2); }
+  .tx-cat-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .tx-amount { font-size: 15px; font-weight: 600; font-family: 'DM Serif Display', serif; }
+  .tx-amount.income { color: var(--green); }
+  .tx-amount.expense { color: var(--red); }
+  .tx-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.15s; }
+  .tx-del:hover { background: var(--red-light); color: var(--red); }
+  .tx-empty { padding: 3rem; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* FOOTER */
+  .footer { text-align: center; margin-top: 3rem; font-size: 12px; color: var(--muted); }
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    .main-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .header-row { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>Expense Tracker</h1>
+        <p id="header-date">Loading date...</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportCSV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-danger" onclick="clearAll()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Clear All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUDGET ALERT -->
+  <div class="budget-alert" id="budget-alert">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="budget-alert-text"></span>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Total Income</div>
+      <div class="card-value income" id="total-income">₹0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Expenses</div>
+      <div class="card-value expense" id="total-expense">₹0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Balance</div>
+      <div class="card-value" id="total-balance">₹0</div>
+    </div>
+  </div>
+
+  <!-- MONTHLY BUDGET -->
+  <div class="budget-section">
+    <div class="budget-header">
+      <div class="budget-header-left">Monthly Budget Limit</div>
+      <div class="budget-input-row">
+        <input type="number" id="budget-input" placeholder="Set budget (₹)" min="0" />
+        <button class="btn btn-primary" onclick="setBudget()">Set</button>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="budget-bar" style="width:0%"></div>
+    </div>
+    <div class="progress-label" id="budget-label">No budget set</div>
+  </div>
+
+  <!-- ADD ENTRY FORM -->
+  <div class="form-section">
+    <h2>Add Transaction</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="desc">Description</label>
+        <input type="text" id="desc" placeholder="e.g. Lunch, Salary..." />
+      </div>
+      <div class="field">
+        <label for="amount">Amount (₹)</label>
+        <input type="number" id="amount" placeholder="0.00" min="0" step="0.01" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="cat">Category</label>
+        <select id="cat">
+          <option value="Food">🍱 Food</option>
+          <option value="Transport">🚌 Transport</option>
+          <option value="Shopping">🛍 Shopping</option>
+          <option value="Entertainment">🎬 Entertainment</option>
+          <option value="Health">💊 Health</option>
+          <option value="Education">📚 Education</option>
+          <option value="Salary">💼 Salary</option>
+          <option value="Other">📦 Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <div class="type-toggle">
+          <button id="type-expense" class="active expense" onclick="setType('expense')">Expense</button>
+          <button id="type-income" onclick="setType('income')">Income</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addEntry()" style="height:40px; align-self:end;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add
+      </button>
+    </div>
+  </div>
+
+  <!-- CHART + LEGEND -->
+  <div class="main-grid">
+    <div class="panel">
+      <h2>Spending Breakdown</h2>
+      <div class="chart-wrap">
+        <canvas id="et-chart" role="img" aria-label="Doughnut chart of expenses by category">No expense data yet.</canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>By Category</h2>
+      <div class="legend" id="et-legend">
+        <p style="font-size:13px; color:var(--muted);">Add expenses to see breakdown.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="transactions-section">
+    <div class="tx-header">
+      <h2>Transactions</h2>
+      <div class="tx-filters">
+        <select id="filter-type" onchange="renderList()">
+          <option value="all">All types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <select id="filter-cat" onchange="renderList()">
+          <option value="all">All categories</option>
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Health">Health</option>
+          <option value="Education">Education</option>
+          <option value="Salary">Salary</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="tx-list" id="tx-list"></div>
+  </div>
+
+  <div class="footer">
+    Expense Tracker &mdash; College Mini Project &nbsp;|&nbsp; Data stored locally in your browser
+  </div>
+</div>
+
+<script>
+const CAT_COLORS = {
+  Food: '#D85A30', Transport: '#185FA5', Shopping: '#D4537E',
+  Entertainment: '#7F77DD', Health: '#2D6A3F', Education: '#0F6E56',
+  Salary: '#639922', Other: '#888780'
+};
+const CAT_EMOJI = {
+  Food: '🍱', Transport: '🚌', Shopping: '🛍', Entertainment: '🎬',
+  Health: '💊', Education: '📚', Salary: '💼', Other: '📦'
+};
+const CAT_BG = {
+  Food: '#FAE8E1', Transport: '#E6F1FB', Shopping: '#FBEAF0',
+  Entertainment: '#EEEDFE', Health: '#E3F0E8', Education: '#E1F5EE',
+  Salary: '#EAF3DE', Other: '#F1EFE8'
+};
+
+let entries = JSON.parse(localStorage.getItem('et_entries') || '[]');
+let budget = parseFloat(localStorage.getItem('et_budget') || '0');
+let currentType = 'expense';
+let chartInstance = null;
+
+function save() {
+  localStorage.setItem('et_entries', JSON.stringify(entries));
+  localStorage.setItem('et_budget', budget);
+}
+
+function setType(t) {
+  currentType = t;
+  document.getElementById('type-expense').className = t === 'expense' ? 'active expense' : '';
+  document.getElementById('type-income').className = t === 'income' ? 'active income' : '';
+}
+
+function setBudget() {
+  const val = parseFloat(document.getElementById('budget-input').value);
+  if (!val || val <= 0) { alert('Please enter a valid budget amount.'); return; }
+  budget = val;
+  document.getElementById('budget-input').value = '';
+  save();
+  renderBudget();
+}
+
+function addEntry() {
+  const desc = document.getElementById('desc').value.trim();
+  const amount = parseFloat(document.getElementById('amount').value);
+  const cat = document.getElementById('cat').value;
+  if (!desc) { alert('Please enter a description.'); return; }
+  if (!amount || amount <= 0) { alert('Please enter a valid amount.'); return; }
+  const now = new Date();
+  entries.unshift({
+    id: Date.now(), desc, amount, cat,
+    type: currentType,
+    date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  });
+  save();
+  document.getElementById('desc').value = '';
+  document.getElementById('amount').value = '';
+  render();
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this transaction?')) return;
+  entries = entries.filter(e => e.id !== id);
+  save();
+  render();
+}
+
+function clearAll() {
+  if (!confirm('Clear ALL transactions? This cannot be undone.')) return;
+  entries = [];
+  save();
+  render();
+}
+
+function fmt(n) {
+  return '₹' + Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+function renderSummary() {
+  const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+  const expense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+  const bal = income - expense;
+  document.getElementById('total-income').textContent = fmt(income);
+  document.getElementById('total-expense').textContent = fmt(expense);
+  const balEl = document.getElementById('total-balance');
+  balEl.textContent = (bal < 0 ? '-' : '') + fmt(bal);
+  balEl.className = 'card-value ' + (bal < 0 ? 'balance-neg' : bal > 0 ? 'balance-pos' : 'balance-zero');
+}
+
+function renderBudget() {
+  const expense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+  const bar = document.getElementById('budget-bar');
+  const label = document.getElementById('budget-label');
+  const alert = document.getElementById('budget-alert');
+  const alertText = document.getElementById('budget-alert-text');
+
+  if (!budget) {
+    bar.style.width = '0%';
+    label.textContent = 'No budget set. Enter a limit above.';
+    alert.classList.remove('visible');
+    return;
+  }
+
+  const pct = Math.min((expense / budget) * 100, 100);
+  bar.style.width = pct + '%';
+  bar.className = 'progress-bar' + (pct >= 100 ? ' over' : pct >= 80 ? ' warn' : '');
+  label.textContent = `${fmt(expense)} spent of ${fmt(budget)} budget (${Math.round(pct)}%)`;
+
+  if (pct >= 100) {
+    alert.classList.add('visible');
+    alertText.textContent = `⚠️ Budget exceeded! You've spent ${fmt(expense - budget)} over your limit.`;
+  } else if (pct >= 80) {
+    alert.classList.add('visible');
+    alertText.textContent = `You're at ${Math.round(pct)}% of your monthly budget. Only ${fmt(budget - expense)} remaining.`;
+  } else {
+    alert.classList.remove('visible');
+  }
+}
+
+function renderChart() {
+  const expEntries = entries.filter(e => e.type === 'expense');
+  const catTotals = {};
+  expEntries.forEach(e => { catTotals[e.cat] = (catTotals[e.cat] || 0) + e.amount; });
+  const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]);
+  const vals = cats.map(c => catTotals[c]);
+  const colors = cats.map(c => CAT_COLORS[c] || '#888');
+  const total = vals.reduce((s, v) => s + v, 0);
+
+  const legend = document.getElementById('et-legend');
+  if (!cats.length) {
+    legend.innerHTML = '<p style="font-size:13px;color:var(--muted);">Add expenses to see breakdown.</p>';
+  } else {
+    legend.innerHTML = cats.map((c, i) => `
+      <div class="legend-item">
+        <div class="legend-left">
+          <span class="legend-dot" style="background:${colors[i]}"></span>
+          <span>${CAT_EMOJI[c] || ''} ${c}</span>
+        </div>
+        <span class="legend-amount">${fmt(vals[i])} <span style="color:var(--muted);font-weight:400;">(${total ? Math.round(vals[i]/total*100) : 0}%)</span></span>
+      </div>
+    `).join('');
+  }
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  if (!cats.length) return;
+
+  chartInstance = new Chart(document.getElementById('et-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: cats,
+      datasets: [{ data: vals, backgroundColor: colors, borderWidth: 3, borderColor: '#FFFFFF', hoverBorderColor: '#FFFFFF' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ₹${ctx.parsed.toLocaleString('en-IN')} (${total ? Math.round(ctx.parsed/total*100) : 0}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderList() {
+  const ft = document.getElementById('filter-type').value;
+  const fc = document.getElementById('filter-cat').value;
+  let filtered = entries;
+  if (ft !== 'all') filtered = filtered.filter(e => e.type === ft);
+  if (fc !== 'all') filtered = filtered.filter(e => e.cat === fc);
+  const list = document.getElementById('tx-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="tx-empty">No transactions found.</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => `
+    <div class="tx-item">
+      <div class="tx-cat-dot" style="background:${CAT_BG[e.cat] || '#F1EFE8'};">
+        <span style="font-size:18px;">${CAT_EMOJI[e.cat] || '📦'}</span>
+      </div>
+      <div class="tx-info">
+        <div class="tx-desc">${escHtml(e.desc)}</div>
+        <div class="tx-meta">${e.cat} &middot; ${e.date}</div>
+      </div>
+      <div class="tx-amount ${e.type}">${e.type === 'income' ? '+' : '-'}${fmt(e.amount)}</div>
+      <button class="tx-del" onclick="deleteEntry(${e.id})" title="Delete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function exportCSV() {
+  if (!entries.length) { alert('No transactions to export!'); return; }
+  const rows = [['Date', 'Description', 'Category', 'Type', 'Amount (INR)']];
+  entries.forEach(e => rows.push([e.date, e.desc, e.cat, e.type, e.amount.toFixed(2)]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `expenses_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function render() {
+  renderSummary();
+  renderBudget();
+  renderChart();
+  renderList();
+}
+
+// Init
+document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-IN', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+});
+if (budget) document.getElementById('budget-input').placeholder = `Current: ₹${budget.toLocaleString('en-IN')}`;
+render();
+</script>
+</body>
+</html>
